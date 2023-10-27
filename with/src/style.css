@@ -1,0 +1,31 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: burlywood;
+}
+
+main {
+  margin: 80px auto 20px;
+  width: 560px;
+}
+
+#infinite-scroll {
+  background-color: white;
+  margin: 0 auto;
+  max-height: 400px;
+  max-width: 250px;
+  overflow-y: scroll;
+}
+
+#infinite-scroll > div:not(#control) {
+  align-items: center;
+  display: flex;
+  font-size: 1.25rem;
+  height: 80px;
+  transition: opacity 400ms ease;
+  justify-content: center;
+}
