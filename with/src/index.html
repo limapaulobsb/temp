@@ -24,9 +24,21 @@
       </p>
       <br />
       <section>
-        <div class="scroll" id="infinite-scroll">
-          <div id="control"></div>
-        </div>
+        <form id="filter-form">
+          <input type="checkbox" name="sans-serif" id="sans-serif-input" checked />
+          <label for="sans-serif-input">sans-serif</label>
+          <input type="checkbox" name="serif" id="serif-input" checked />
+          <label for="serif-input">serif</label>
+          <input type="checkbox" name="monospace" id="monospace-input" checked />
+          <label for="monospace-input">monospace</label>
+          <input type="checkbox" name="handwriting" id="handwriting-input" checked />
+          <label for="handwriting-input">handwriting</label>
+          <input type="checkbox" name="display" id="display-input" checked />
+          <label for="display-input">display</label>
+          <input type="text" name="query" />
+          <button type="submit">Filter</button>
+        </form>
+        <ul class="list" id="scrollable-list"></ul>
       </section>
     </main>
     <script type="module" src="script.js"></script>

@@ -1,58 +1,83 @@
-import createObserver, { buildThresholdList } from './observer.js';
 import api from './api.js';
-const cssEndpoint = 'https://fonts.googleapis.com/css?family=';
 
-let loadedIndex = 0;
-let fonts;
-const controlElement = document.getElementById('control');
+let data = [];
 
-function loadFonts(f) {
-  const container = document.getElementById('infinite-scroll');
-  f.forEach((font) => {
-    const newFont = document.createElement('div');
-    newFont.innerText = 'Preview text';
-    newFont.style.fontFamily = `${font.family}, ${font.category}`;
-    container.appendChild(newFont);
-    const observer = createObserver(handleOpacity, '0px', buildThresholdList(4));
-    observer.observe(newFont);
+let fontList = [];
+let createdIndex = -1;
+let loadedFonts = [];
+const maxFirstCreationCount = 10;
+
+const scrollableList = document.getElementById('scrollable-list');
+
+function filterFonts(formData) {
+  fontList = data.filter(({ category, family }) => {
+    let criteria = false;
+
+    if (formData.get('sans-serif') === 'on') {
+      criteria ||= category === 'sans-serif';
+    }
+
+    if (formData.get('serif') === 'on') {
+      criteria ||= category === 'serif';
+    }
+
+    if (formData.get('monospace') === 'on') {
+      criteria ||= category === 'monospace';
+    }
+
+    if (formData.get('handwriting') === 'on') {
+      criteria ||= category === 'handwriting';
+    }
+
+    if (formData.get('display') === 'on') {
+      criteria ||= category === 'display';
+    }
+
+    const query = formData.get('query');
+
+    if (query) {
+      const re = new RegExp(query, 'i');
+      criteria &&= re.test(family);
+    }
+
+    return criteria;
   });
-
-  const fontFamilies = f.map((font) => font.family);
-
-  const cssUrl = `${cssEndpoint}${fontFamilies.join('|')}`;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = cssUrl;
-  document.querySelector('head').appendChild(link);
-
-  const refElement = document.querySelector('#infinite-scroll > div:nth-last-child(10)');
-  controlElement.parentNode.insertBefore(controlElement, refElement);
-
-  loadedIndex += f.length;
-  console.log(loadedIndex);
 }
 
-function handleOpacity(entries) {
-  entries[0].target.style.opacity = entries[0].intersectionRatio;
-  // console.log(entries);
+function createNewList(formData) {
+  while (scrollableList.hasChildNodes()) {
+    scrollableList.removeChild(scrollableList.firstElementChild);
+  }
+
+  filterFonts(formData);
+  createdIndex = -1;
+
+  if (fontList.length) {
+    for (let i = 0; i < maxFirstCreationCount; i++) {
+      const newListItem = document.createElement('li');
+      newListItem.innerText = fontList[i].family;
+      scrollableList.appendChild(newListItem);
+
+      createdIndex += 1;
+      console.log(fontList);
+      console.log(createdIndex, fontList.length);
+      console.log(createdIndex === fontList.length - 1);
+      if (createdIndex === fontList.length - 1) {
+        break;
+      }
+    }
+  }
 }
 
-function handleLoad(entries) {
-  if (entries[0].intersectionRatio <= 0) return;
-  console.log(loadedIndex);
-  loadFonts(fonts.slice(loadedIndex, loadedIndex + 10));
-  console.log('Loaded new items');
-}
+window.addEventListener('load', async () => {
+  data = (await api.fetchFonts()).items;
 
-window.addEventListener(
-  'load',
-  async () => {
-    fonts = (await api.fetchFonts()).items;
-    console.log(fonts);
-    loadFonts(fonts.slice(0, 40));
+  const filterForm = document.getElementById('filter-form');
 
-    const observer = createObserver(handleLoad, '0px', 1);
-    observer.observe(controlElement);
-  },
-  false
-);
+  filterForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+
+    createNewList(formData);
+  });
+});

@@ -13,7 +13,7 @@ main {
   width: 560px;
 }
 
-#infinite-scroll {
+#scrollable-list {
   background-color: white;
   margin: 0 auto;
   max-height: 400px;
@@ -21,7 +21,7 @@ main {
   overflow-y: scroll;
 }
 
-#infinite-scroll > div:not(#control) {
+#scrollable-list > li:not(#control) {
   align-items: center;
   display: flex;
   font-size: 1.25rem;
