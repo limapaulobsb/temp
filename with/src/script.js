@@ -1,83 +1,117 @@
 import api from './api.js';
+import createObserver, { buildThresholdList } from './observer.js';
 
 let data = [];
-
-let fontList = [];
-let createdIndex = -1;
+let filteredFonts = [];
 let loadedFonts = [];
-const maxFirstCreationCount = 10;
+const categories = ['sans-serif', 'serif', 'monospace', 'handwriting', 'display'];
 
+const filterForm = document.getElementById('filter-form');
 const scrollableList = document.getElementById('scrollable-list');
 
-function filterFonts(formData) {
-  fontList = data.filter(({ category, family }) => {
+function filterData(formData) {
+  filteredFonts = data.filter(({ category: fontCategory, family: fontFamily }) => {
     let criteria = false;
 
-    if (formData.get('sans-serif') === 'on') {
-      criteria ||= category === 'sans-serif';
-    }
-
-    if (formData.get('serif') === 'on') {
-      criteria ||= category === 'serif';
-    }
-
-    if (formData.get('monospace') === 'on') {
-      criteria ||= category === 'monospace';
-    }
-
-    if (formData.get('handwriting') === 'on') {
-      criteria ||= category === 'handwriting';
-    }
-
-    if (formData.get('display') === 'on') {
-      criteria ||= category === 'display';
-    }
+    categories.forEach((category) => {
+      if (formData.get(category) === 'on') {
+        criteria ||= fontCategory === category;
+      }
+    });
 
     const query = formData.get('query');
 
     if (query) {
       const re = new RegExp(query, 'i');
-      criteria &&= re.test(family);
+      criteria &&= re.test(fontFamily);
     }
 
     return criteria;
   });
+
+  console.log(filteredFonts.length);
 }
 
-function createNewList(formData) {
+function loadFonts(fontFamilies) {
+  const url = `https://fonts.googleapis.com/css?family=${fontFamilies.join('|')}`;
+  const newLink = document.createElement('link');
+  newLink.setAttribute('rel', 'stylesheet');
+  newLink.setAttribute('href', url);
+  document.querySelector('head').appendChild(newLink);
+  loadedFonts = [...loadedFonts, ...fontFamilies];
+}
+
+function createListItems(n) {
+  // Remove the control element, if it exists
+  let controlElement = document.getElementById('control');
+  controlElement?.remove();
+
+  //
+  const filteredCount = filteredFonts.length;
+  const itemCount = () => scrollableList.childElementCount;
+  const remainingCount = filteredCount - itemCount();
+  const toBeCreated = Math.min(n, remainingCount);
+  const familiesToLoad = [];
+
+  // Create items
+  for (let i = 0; i < toBeCreated; i++) {
+    const fontIndex = itemCount();
+    const fontFamily = filteredFonts[fontIndex].family;
+    const fontCategory = filteredFonts[fontIndex].category;
+    const newListItem = document.createElement('li');
+    newListItem.style.fontFamily = `${fontFamily}, ${fontCategory}`;
+    newListItem.innerText = fontFamily;
+    scrollableList.appendChild(newListItem);
+
+    if (!loadedFonts.includes(fontFamily)) {
+      familiesToLoad.push(fontFamily);
+    }
+  }
+
+  // Create control element if list is not fully loaded
+  if (itemCount() < filteredCount) {
+    controlElement = document.createElement('div');
+    controlElement.setAttribute('id', 'control');
+    const referenceElement = scrollableList.querySelector('li:nth-last-child(2)');
+    scrollableList.insertBefore(controlElement, referenceElement);
+
+    createObserver(controlElement, (entries) => {
+      // If the intersection ratio is 0 or less, the element is out of view and
+      // we don't need to do anything.
+      if (entries[0].intersectionRatio <= 0) return;
+      createListItems(10);
+    });
+  }
+
+  // Load fonts if they are not already loaded
+  if (familiesToLoad.length) {
+    loadFonts(familiesToLoad);
+  }
+}
+
+function createNewList() {
   while (scrollableList.hasChildNodes()) {
     scrollableList.removeChild(scrollableList.firstElementChild);
   }
 
-  filterFonts(formData);
-  createdIndex = -1;
+  const formData = new FormData(filterForm);
+  filterData(formData);
 
-  if (fontList.length) {
-    for (let i = 0; i < maxFirstCreationCount; i++) {
-      const newListItem = document.createElement('li');
-      newListItem.innerText = fontList[i].family;
-      scrollableList.appendChild(newListItem);
-
-      createdIndex += 1;
-      console.log(fontList);
-      console.log(createdIndex, fontList.length);
-      console.log(createdIndex === fontList.length - 1);
-      if (createdIndex === fontList.length - 1) {
-        break;
-      }
-    }
+  if (filteredFonts.length) {
+    createListItems(10);
   }
+
+  //
+  scrollableList.scrollTo(0, 0);
 }
 
 window.addEventListener('load', async () => {
   data = (await api.fetchFonts()).items;
 
-  const filterForm = document.getElementById('filter-form');
+  createNewList();
 
   filterForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    const formData = new FormData(event.target);
-
-    createNewList(formData);
+    createNewList();
   });
 });

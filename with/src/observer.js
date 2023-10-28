@@ -9,12 +9,12 @@ export function buildThresholdList(numSteps) {
   return thresholds;
 }
 
-export default function createObserver(handleIntersect, margin = 0, threshold = 0) {
+export default function createObserver(element, handleIntersect, threshold = 1.0) {
   const options = {
-    root: document.getElementById('#infinite-scroll'),
-    rootMargin: margin,
+    root: document.getElementById('#scrollable-list'),
     threshold,
   };
+  const observer = new IntersectionObserver(handleIntersect, options);
 
-  return new IntersectionObserver(handleIntersect, options);
+  observer.observe(element);
 }

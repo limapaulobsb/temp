@@ -39,9 +39,7 @@ function handleOpacity(entries) {
 
 function handleLoad(entries) {
   if (entries[0].intersectionRatio <= 0) return;
-  console.log(loadedIndex);
   loadFonts(fonts.slice(loadedIndex, loadedIndex + 10));
-  console.log('Loaded new items');
 }
 
 window.addEventListener(
