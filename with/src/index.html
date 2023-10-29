@@ -35,10 +35,16 @@
           <label for="handwriting-input">handwriting</label>
           <input type="checkbox" name="display" id="display-input" checked />
           <label for="display-input">display</label>
+          <label for="sorting-input">Sorting:</label>
+          <select name="sorting-method" id="sorting-input">
+            <option value="alpha">alpha</option>
+            <option value="popularity" selected>popularity</option>
+            <option value="trending">trending</option>
+          </select>
           <input type="text" name="query" />
           <button type="submit">Filter</button>
         </form>
-        <ul class="list" id="scrollable-list"></ul>
+        <ul id="scrollable-list"></ul>
       </section>
     </main>
     <script type="module" src="script.js"></script>

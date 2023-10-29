@@ -1,0 +1,7 @@
+favoritos
+tamanho
+negrito
+italic
+escolha de seletor
+imports
+"No results"

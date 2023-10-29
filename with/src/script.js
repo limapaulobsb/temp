@@ -4,9 +4,9 @@ import createObserver, { buildThresholdList } from './observer.js';
 let data = [];
 let filteredFonts = [];
 let loadedFonts = [];
+let currentSortingMethod = '';
 const categories = ['sans-serif', 'serif', 'monospace', 'handwriting', 'display'];
 
-const filterForm = document.getElementById('filter-form');
 const scrollableList = document.getElementById('scrollable-list');
 
 function filterData(formData) {
@@ -28,15 +28,14 @@ function filterData(formData) {
 
     return criteria;
   });
-
-  console.log(filteredFonts.length);
 }
 
 function loadFonts(fontFamilies) {
-  const url = `https://fonts.googleapis.com/css?family=${fontFamilies.join('|')}`;
+  const baseURL = 'https://fonts.googleapis.com/css?family=';
+  const URL = `${baseURL}${fontFamilies.join('|')}&display=swap`;
   const newLink = document.createElement('link');
   newLink.setAttribute('rel', 'stylesheet');
-  newLink.setAttribute('href', url);
+  newLink.setAttribute('href', URL);
   document.querySelector('head').appendChild(newLink);
   loadedFonts = [...loadedFonts, ...fontFamilies];
 }
@@ -63,6 +62,15 @@ function createListItems(n) {
     newListItem.innerText = fontFamily;
     scrollableList.appendChild(newListItem);
 
+    // Create an IntersectionObserver to change element opacity
+    createObserver(
+      newListItem,
+      (entries) => {
+        entries[0].target.style.opacity = entries[0].intersectionRatio;
+      },
+      buildThresholdList(10)
+    );
+
     if (!loadedFonts.includes(fontFamily)) {
       familiesToLoad.push(fontFamily);
     }
@@ -75,9 +83,10 @@ function createListItems(n) {
     const referenceElement = scrollableList.querySelector('li:nth-last-child(2)');
     scrollableList.insertBefore(controlElement, referenceElement);
 
+    // Create an IntersectionObserver to create the next elements in the list
     createObserver(controlElement, (entries) => {
-      // If the intersection ratio is 0 or less, the element is out of view and
-      // we don't need to do anything.
+      // If the intersection ratio is 0 or less, the control element is out of
+      // view and we don't need to do anything.
       if (entries[0].intersectionRatio <= 0) return;
       createListItems(10);
     });
@@ -89,29 +98,51 @@ function createListItems(n) {
   }
 }
 
-function createNewList() {
+async function getData(selectedMethod) {
+  // Create loading element
+  const loadingElement = document.createElement('div');
+  loadingElement.setAttribute('class', 'loading');
+  scrollableList.appendChild(loadingElement);
+
+  // Make the request
+  data = (await api.fetchFontsBy(selectedMethod)).items;
+  currentSortingMethod = selectedMethod;
+
+  // Remove loading
+  loadingElement.remove();
+}
+
+async function createNewList(formData) {
+  // Remove all elements from the list
   while (scrollableList.hasChildNodes()) {
     scrollableList.removeChild(scrollableList.firstElementChild);
   }
 
-  const formData = new FormData(filterForm);
+  // If necessary, make a request to get the fonts in a specific order
+  const selectedMethod = formData.get('sorting-method');
+
+  if (selectedMethod !== currentSortingMethod) {
+    await getData(selectedMethod);
+  }
+
+  // Filter data and create list elements
   filterData(formData);
 
   if (filteredFonts.length) {
     createListItems(10);
   }
 
-  //
+  // Scroll to the top
   scrollableList.scrollTo(0, 0);
 }
 
 window.addEventListener('load', async () => {
-  data = (await api.fetchFonts()).items;
+  const filterForm = document.getElementById('filter-form');
 
-  createNewList();
+  createNewList(new FormData(filterForm));
 
   filterForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    createNewList();
+    createNewList(new FormData(filterForm));
   });
 });
